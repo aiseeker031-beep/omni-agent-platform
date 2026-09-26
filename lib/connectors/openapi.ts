@@ -1,5 +1,6 @@
 import type { ToolDefinition } from "@/lib/types";
 import { fetchJson } from "@/lib/http";
+import { assertPublicHttpsUrl } from "@/lib/security";
 
 export type OpenApiConfig = {
   specUrl: string;
@@ -40,6 +41,7 @@ export async function openApiTools(connectorName: string, config: OpenApiConfig)
   const spec = await loadSpec(config.specUrl);
   const baseUrl = (config.baseUrl || spec.servers?.[0]?.url || "").replace(/\/$/, "");
   if (!baseUrl) throw new Error(`Connector ${connectorName} has no base URL`);
+  await assertPublicHttpsUrl(baseUrl);
   const tools: ToolDefinition[] = [];
 
   for (const [path, methods] of Object.entries(spec.paths || {})) {
@@ -63,6 +65,7 @@ export async function openApiTools(connectorName: string, config: OpenApiConfig)
           }
           const finalUrl = new URL(baseUrl + resolved);
           for (const [k,v] of url.searchParams.entries()) finalUrl.searchParams.set(k,v);
+          await assertPublicHttpsUrl(finalUrl.toString());
           const headers: Record<string,string> = { Accept: "application/json" };
           if (args.body !== undefined) headers["Content-Type"] = "application/json";
           if (config.auth?.type === "bearer") headers.Authorization = `Bearer ${config.auth.token}`;

@@ -1,4 +1,5 @@
 import { executeTool, searchTools } from "@/lib/tool-registry";
+import { assertPublicHttpsUrl } from "@/lib/security";
 
 export type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -61,6 +62,7 @@ function config(override?: ModelConfig) {
 async function completion(messages: ApiMessage[], override?: ModelConfig) {
   const ai = config(override);
   const endpoint = /\/chat\/completions$/.test(ai.baseURL) ? ai.baseURL : `${ai.baseURL}/chat/completions`;
+  if (process.env.NODE_ENV === "production") await assertPublicHttpsUrl(endpoint);
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { Authorization: `Bearer ${ai.apiKey}`, "Content-Type": "application/json" },
